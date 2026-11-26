@@ -1,0 +1,6 @@
+# SoftwareFactory runtime (agent reports, tested-branch log)
+.factory/
+
+# Personal Claude Code settings
+.claude/settings.local.json
+CLAUDE.local.md
