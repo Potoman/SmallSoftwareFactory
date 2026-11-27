@@ -1,0 +1,51 @@
+%% Rendered with minlag/mermaid-cli:11.12.0
+flowchart TD
+    subgraph REQ["Requirement pipeline"]
+        NEW(["/req-new → run"]) --> CHECK["1 · req-checker"]
+        UPD(["/req-update → update"]) --> CHECK
+        CHECK -->|"other, or no KIND"| S1["Stop: rejected"]:::stop
+        CHECK -->|"OK + KIND"| IMPL["2 · implementer<br/>REQ-* branch"]
+        IMPL -->|"not DONE, or bad branch"| S2["Stop: not implemented"]:::stop
+        IMPL -->|"DONE + BRANCH"| CAND["3 · candidate commit<br/>master + merge --no-ff"]
+
+        TEST(["test branch"]):::entry --> CAND
+        WATCH(["watch: untested REQ-* commits"]):::entry --> CAND
+
+        CAND -->|"merge OK"| TESTER["3 · branch-tester"]
+        CAND -->|"CONFLICT"| LEFT{"attempts left?<br/>default 3 in all"}:::loop
+        TESTER -->|"FAIL or other"| LEFT
+        LEFT -->|"no"| S3["Stop: attempts used up"]:::stop
+        LEFT -->|"yes"| FIX["implementer<br/>conflict or fix mode"]:::loop
+        FIX -->|"DONE"| CAND
+        FIX -->|"not DONE"| S4["Stop: fix not done"]:::stop
+
+        TESTER -->|"PASS"| FF["4 · merge --ff-only"]:::main
+        FF -->|"master moved: stale,<br/>retest, up to 3 times"| CAND
+        FF -->|"stale a 4th time"| S5["Stop: master keeps moving"]:::stop
+        FF -->|"merged"| REG["5 · regression-tester"]
+        REGRESS(["regress"]):::entry --> REG
+        REG -->|"PASS"| DONE(["Done"]):::main
+        REG -->|"FAIL or other"| S6["Stop: regression,<br/>master not rolled back"]:::stop
+    end
+
+    subgraph FAC["Factory change flow"]
+        USF(["/update-software-factory → factory"]) --> F1["F1 · factory-maintainer<br/>factory-* branch"]
+        F1 -->|"not DONE, or bad branch"| S7["Stop: no factory change"]:::stop
+        F1 -->|"DONE + BRANCH"| F2["F2 · factory-doc"]
+        DOC(["doc: new factory-docs-* branch"]):::entry --> F2
+        F2 -->|"other"| S8["Stop: not documented"]:::stop
+        F2 -->|"doc only: UNCHANGED"| DD(["Done: branch deleted"]):::main
+        F2 -->|"DONE or UNCHANGED"| F3["F3 · merge --ff-only"]:::main
+        F3 -->|"master moved"| S9["Stop: merge refused"]:::stop
+        F3 -->|"doc only: merged"| DM(["Done"]):::main
+        F3 -->|"factory: merged"| F4["F4 · implementer<br/>conform mode"]
+        F4 -->|"other, or bad branch"| S10["Stop: not conformed"]:::stop
+    end
+
+    F4 -->|"DONE + conform-* BRANCH"| CAND
+    F4 -->|"COMPLIANT"| REG
+
+    classDef stop fill:#fbecec,stroke:#b3261e,color:#8c1d18
+    classDef main fill:#e1f1ee,stroke:#0b7663,color:#075e4f
+    classDef loop fill:#fcf2e0,stroke:#9a5b00,color:#5c3700
+    classDef entry stroke-dasharray:6 4
