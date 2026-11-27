@@ -2,6 +2,7 @@
 id: REQ-000
 title: Short requirement title
 ---
+<!-- Do not add a `kind` field: the factory classifies the requirement (feature or constraint). -->
 
 # REQ-000 — Short requirement title
 

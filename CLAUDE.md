@@ -9,7 +9,7 @@ requirements/REQ-xxx-*.md (new, not committed)
         │
         ▼
  1. req-checker        → contradicts an existing requirement?  CONFLICT = stop
-        │ OK
+        │ OK      + classifies it: feature or constraint
         ▼
  2. implementer        → branch <ID>-<short-title> (requirement + code + tests committed)
         │
@@ -35,6 +35,15 @@ Orchestration is done by `scripts/factory.sh` (run `./scripts/factory.sh --help`
 - No Windows-specific tooling: no PowerShell, `.bat`/`.cmd` files or Windows paths. Scripts are bash, with a `#!/usr/bin/env bash` shebang.
 - Text files use LF line endings (enforced by `.gitattributes`).
 
+## Requirement kinds
+
+The factory, not the author, decides the kind of each requirement (the `req-checker` classifies it, the implementer writes `kind:` in its frontmatter):
+
+- `feature`: an observable behaviour of the software. Implemented with code and automated tests.
+- `constraint`: a technical rule on how the software is built (language, framework, tooling, conventions, layout). No feature code of its own: it is merged once recorded, and every later requirement must follow it. Its "How to test" steps that need application code are "not applicable yet" until such code exists.
+
+A requirement that mixes both is rejected and must be split.
+
 ## Conventions
 
 - **Requirement**: `requirements/<ID>-<short-title>.md`, following `requirements/_TEMPLATE.md`.
@@ -48,7 +57,7 @@ Orchestration is done by `scripts/factory.sh` (run `./scripts/factory.sh --help`
 
 ## Tech stack
 
-> To be defined. While this section is empty, the first implemented requirement picks the stack. It must then describe it here, together with the command that runs the whole test suite.
+> Defined by the `kind: constraint` requirements merged on `master`: read them first. If none defines the stack, the first implemented feature picks it and describes it here, together with the command that runs the whole test suite.
 
 - Language: _to be defined_
 - Test command (whole suite): _to be defined_

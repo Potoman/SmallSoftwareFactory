@@ -17,6 +17,8 @@ Need expressed by the user: $ARGUMENTS
    - a precise description that covers edge cases;
    - a "How to test" section made of verifiable steps, each with a measurable expected result.
 
+   Do not ask the user whether it is a feature or a technical constraint, and do not write a `kind` field: the factory decides that during the consistency check. Write it the same way in both cases.
+
    If the need is too vague to write verifiable tests, first ask the user the necessary questions.
 3. **Save** the file as `requirements/<ID>-<short-kebab-title>.md`. Do not commit it: the implementer will commit it on its branch.
 4. **Start the whole chain** without asking for confirmation. Do not call the `req-checker` yourself: the `run` command does the consistency check as its first stage and stops there on a conflict.
@@ -25,6 +27,6 @@ Need expressed by the user: $ARGUMENTS
      `./scripts/factory.sh run requirements/<file>.md > .factory/reports/factory-<ID>.log 2>&1`
    - Tell the user right away: the requirement file path, that the chain is running, and the log path.
 5. **Report when the command ends** (you are notified when the background command exits). Read the log and the reports it points to, then tell the user:
-   - if it ended with `Done.`: the branch merged into `master` and the regression result;
-   - if it stopped at the consistency check (`CONFLICT`): the contradictions found, and a suggested rewording of the requirement;
+   - if it ended with `Done.`: the kind the factory chose (feature or constraint), the branch merged into `master` and the regression result;
+   - if it stopped at the consistency check (`CONFLICT`): the contradictions found, and a suggested rewording of the requirement (or a split into a constraint and a feature, if it mixed both);
    - if it stopped later: at which stage (implementation, candidate test, merge, regression), why, and the report path.

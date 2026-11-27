@@ -16,7 +16,7 @@ usage() {
 Usage: scripts/factory.sh <command> [target] [options]
 
 Commands:
-  check   <requirements/REQ-xxx-....md>   consistency check only
+  check   <requirements/REQ-xxx-....md>   consistency check and classification only
   run     <requirements/REQ-xxx-....md>   check -> implement -> test -> merge -> regression
   test    <REQ-xxx-kebab-title>           test -> merge -> regression for an existing branch
   regress                                 retest every merged requirement on master
@@ -108,7 +108,7 @@ save_report() { # <name> <text> -> prints the report path
     printf '%s' "$path"
 }
 
-# Runs one agent headless. Sets AGENT_VERDICT, AGENT_BRANCH and AGENT_REPORT.
+# Runs one agent headless. Sets AGENT_VERDICT, AGENT_BRANCH, AGENT_KIND and AGENT_REPORT.
 run_agent() { # <agent> <prompt> <workdir> <report-name>
     local agent=$1 prompt=$2 workdir=$3 name=$4 out
     info "-> agent '$agent' in $workdir"
@@ -118,6 +118,7 @@ run_agent() { # <agent> <prompt> <workdir> <report-name>
     AGENT_VERDICT=$(grep -oE 'VERDICT:[[:space:]]*[A-Z]+' <<<"$out" | tail -n 1 | sed -E 's/^VERDICT:[[:space:]]*//')
     AGENT_VERDICT=${AGENT_VERDICT:-NONE}
     AGENT_BRANCH=$(grep -oE 'BRANCH:[[:space:]]*[^[:space:]]+' <<<"$out" | tail -n 1 | sed -E 's/^BRANCH:[[:space:]]*//; s/`//g')
+    AGENT_KIND=$(grep -oE 'KIND:[[:space:]]*[a-z]+' <<<"$out" | tail -n 1 | sed -E 's/^KIND:[[:space:]]*//')
     info "   verdict: $AGENT_VERDICT   report: $AGENT_REPORT"
 }
 
@@ -135,22 +136,27 @@ run_implementer() { # <prompt> <report-name>
 
 # ---------------------------------------------------------------- stages
 
+# The checker also decides the kind of the requirement (the author never does).
+# Sets REQ_KIND (feature | constraint) on success.
 do_check() { # <requirement-file>
     local id
     id=$(req_id "$1") || exit 2
-    step "1. Consistency check: $1"
+    step "1. Consistency check and classification: $1"
     run_agent req-checker "New requirement to check: $1" "$ROOT" "check-$id"
-    if [[ "$AGENT_VERDICT" == OK ]]; then ok "No contradiction."; return 0; fi
-    ko "Requirement rejected. See $AGENT_REPORT"
-    return 1
+    if [[ "$AGENT_VERDICT" != OK ]]; then ko "Requirement rejected. See $AGENT_REPORT"; return 1; fi
+    if [[ "$AGENT_KIND" != feature && "$AGENT_KIND" != constraint ]]; then
+        ko "The checker did not classify the requirement (KIND: '${AGENT_KIND}'). See $AGENT_REPORT"; return 1
+    fi
+    REQ_KIND=$AGENT_KIND
+    ok "No contradiction. Kind: $REQ_KIND."
 }
 
 # Sets IMPLEMENTED_BRANCH on success.
-do_implement() { # <requirement-file>
-    local file=$1 id branch
+do_implement() { # <requirement-file> <kind>
+    local file=$1 kind=$2 id branch
     id=$(req_id "$file") || exit 2
-    step "2. Implementation: $id"
-    run_implementer "Mode: new requirement. Requirement to implement: $file" "implement-$id"
+    step "2. Implementation ($kind): $id"
+    run_implementer "Mode: new requirement. Requirement to implement: $file. Kind: $kind." "implement-$id"
     if [[ "$AGENT_VERDICT" != DONE ]]; then
         ko "Implementer did not finish ($AGENT_VERDICT). See $AGENT_REPORT"; return 1
     fi
@@ -305,7 +311,7 @@ case "$COMMAND" in
     run)
         [[ -n "$TARGET" ]] || { usage >&2; exit 2; }
         [[ -f "$TARGET" ]] || die "File not found: $TARGET"
-        if do_check "$TARGET" && do_implement "$TARGET"; then
+        if do_check "$TARGET" && do_implement "$TARGET" "$REQ_KIND"; then
             branch_pipeline "$IMPLEMENTED_BRANCH" || status=1
         else
             status=1

@@ -27,12 +27,21 @@ You are given the path of a **new** requirement. You do not modify any file.
 
 Do not report simple compatible overlaps: two requirements may talk about the same topic.
 
+5. **Classify** the new requirement. The author never says which kind it is: you decide.
+   - `feature`: a behaviour of the software that a user or caller can observe (inputs, outputs, rules, errors). It needs application code.
+   - `constraint`: a technical rule on *how* the software is built, not on what it does: language, framework, libraries, tooling, coding conventions, project layout, target platform. It needs no feature code of its own.
+   - If it mixes both (for example "a CSV export, written in Python"), it is a blocking problem: answer `VERDICT: CONFLICT` and suggest splitting it into one constraint and one feature.
+   - A constraint also conflicts with an incompatible constraint already merged or in progress (for example two different languages for the application).
+
 ## Answer
 
 A short Markdown report:
 - `## Format`: OK or list of problems
 - `## Contradictions`: for each one, the conflicting ID, both sentences quoted, and why they are incompatible
 - `## Ambiguities`
+- `## Kind`: `feature` or `constraint`, and why in one sentence
+
+The second to last line is exactly `KIND: feature` or `KIND: constraint`.
 
 Last line, exactly one of:
 - `VERDICT: OK`: well-formed, no contradiction, no blocking ambiguity
