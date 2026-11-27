@@ -29,6 +29,18 @@ requirements/REQ-xxx-*.md (new, not committed)
 
 A merged requirement is changed through the same chain: `/req-update` edits `requirements/<ID>-*.md` in place (uncommitted), then `factory.sh update <file>` checks the new version against the other requirements, has the implementer take it to a branch `<ID>-update-<summary>` and adapt the code, tests, merges and runs the regression.
 
+The factory itself (`scripts/`, `.claude/`, the rules of `CLAUDE.md`) is changed with `/update-software-factory`, which runs `factory.sh factory`:
+
+```
+ F1. factory-maintainer → branch factory-<summary> (factory files only)
+ F2. factory-doc        → updates the pipeline diagram in docs/ on that branch
+ F3. git merge --ff-only: master gets the new factory
+ F4. implementer (conform mode) → branch conform-<summary> if the software no longer follows the rules,
+     then tested, merged and regression-tested like any branch (COMPLIANT = nothing to change)
+```
+
+In F4, the requirements are always right and never modified; the code may change as long as every requirement stays satisfied; the tests may change as long as they still cover every requirement, and tests that cover none may be removed. `factory.sh doc` runs F2 and F3 alone.
+
 Orchestration is done by `scripts/factory.sh` (run `./scripts/factory.sh --help`). The agents live in `.claude/agents/`.
 
 ## Environment
@@ -68,7 +80,7 @@ A requirement that mixes both is rejected and must be split.
   - ID: `REQ-` followed by 3 digits (`REQ-001`). Unique, never reused.
   - A requirement is "merged" when its file is present on `master`. Until then it lives in its branch.
   - A merged requirement is changed with `/req-update <ID> <change>` (or edited by hand, then `factory.sh update <file>`). It keeps its ID and file name. It is never committed to `master` directly.
-- **Branch**: `<ID>-<short-title-in-kebab-case>`, e.g. `REQ-001-email-login`. Only `[a-z0-9-]` after the ID.
+- **Branch**: `<ID>-<short-title-in-kebab-case>`, e.g. `REQ-001-email-login`. Only `[a-z0-9-]` after the ID. Factory changes use `factory-<summary>`, conformity changes `conform-<summary>`.
 - **Tests**: every requirement is covered by automated tests whenever possible. Their name contains the lowercase ID (e.g. `tests/req_001_*.py`, `req-001.test.ts`).
 - **Main branch**: `master`.
 - **Reports**: agent reports go to `.factory/reports/`. This folder is ignored by git.

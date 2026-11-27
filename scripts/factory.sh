@@ -23,6 +23,9 @@ Commands:
   test    <REQ-xxx-kebab-title>           test -> merge -> regression for an existing branch
   regress                                 retest every merged requirement on master
   watch                                   poll for new/updated REQ-* branches and test them
+  factory <change-file>                   change the factory itself, update its documentation,
+                                          then bring the software in line with the new rules
+  doc                                     update the factory documentation only
 
 Options:
   --max-attempts N       test attempts per branch, 1 = no automatic fix (default 3)
@@ -40,6 +43,8 @@ cd "$ROOT" || exit 2
 
 MAIN_BRANCH=master
 BRANCH_PATTERN='^REQ-[0-9]{3}-[a-z0-9]+(-[a-z0-9]+)*$'
+FACTORY_BRANCH_PATTERN='^factory-[a-z0-9]+(-[a-z0-9]+)*$'
+CONFORM_BRANCH_PATTERN='^conform-[a-z0-9]+(-[a-z0-9]+)*$'
 FACTORY_DIR="$ROOT/.factory"
 REPORT_DIR="$FACTORY_DIR/reports"
 TESTED_FILE="$FACTORY_DIR/tested.txt"
@@ -146,17 +151,34 @@ run_agent() { # <agent> <prompt> <workdir> <report-name>
     info "   verdict: $AGENT_VERDICT   report: $AGENT_REPORT"
 }
 
-# Runs the implementer in the main checkout and makes sure it did not touch master.
+# Runs an agent that works on its own branch from the main checkout, and makes sure it did
+# not touch master.
 # [allowed-file]: in update mode, the edited requirement the implementer takes to its branch.
-run_implementer() { # <prompt> <report-name> [allowed-file]
-    local before after
+run_on_main() { # <agent> <prompt> <report-name> [allowed-file]
+    local agent=$1 before after
+    shift
     assert_main_ready "${3:-}"
     before=$(sha_of "$MAIN_BRANCH")
-    run_agent implementer "$1" "$ROOT" "$2"
+    run_agent "$agent" "$1" "$ROOT" "$2"
     assert_main_ready "${3:-}"
     after=$(sha_of "$MAIN_BRANCH")
     [[ "$before" == "$after" ]] ||
-        die "The implementer moved $MAIN_BRANCH ($before -> $after). Only this script may update $MAIN_BRANCH. Inspect it before going on."
+        die "The $agent moved $MAIN_BRANCH ($before -> $after). Only this script may update $MAIN_BRANCH. Inspect it before going on."
+}
+
+run_implementer() { run_on_main implementer "$@"; }
+
+check_branch() { # <branch> <pattern> <what>
+    if [[ -z "$1" || ! "$1" =~ $2 ]]; then ko "Invalid $3 branch name '$1'."; return 1; fi
+    git_ok rev-parse --verify --quiet "refs/heads/$1" || { ko "Branch '$1' was announced but does not exist."; return 1; }
+}
+
+# A factory change rewrites the rules every other pipeline follows: nothing may be in progress.
+assert_nothing_in_progress() {
+    local open
+    open=$(git branch --no-merged "$MAIN_BRANCH" --format='%(refname:short)' | grep -E '^(REQ-|factory-|conform-)')
+    [[ -z "$open" ]] || die "Branches are still in progress. Finish or delete them first:
+$open"
 }
 
 # ---------------------------------------------------------------- stages
@@ -274,6 +296,56 @@ do_regression() {
     return 1
 }
 
+# ---------------------------------------------------------------- factory change
+
+# Sets FACTORY_BRANCH on success.
+do_factory_change() { # <change-file>
+    step "F1. Factory change: $1"
+    run_on_main factory-maintainer "Change to make to the SoftwareFactory: $1" "factory-change"
+    if [[ "$AGENT_VERDICT" != DONE ]]; then
+        ko "Factory maintainer did not finish ($AGENT_VERDICT). See $AGENT_REPORT"; return 1
+    fi
+    check_branch "$AGENT_BRANCH" "$FACTORY_BRANCH_PATTERN" factory || return 1
+    ok "Branch $AGENT_BRANCH proposed."
+    FACTORY_BRANCH=$AGENT_BRANCH
+}
+
+do_factory_doc() { # <branch>
+    step "F2. Documentation on $1"
+    run_on_main factory-doc "Branch to document: $1" "factory-doc"
+    case "$AGENT_VERDICT" in
+        DONE)      ok "Documentation updated." ;;
+        UNCHANGED) ok "Documentation already up to date." ;;
+        *)         ko "Documentation not updated ($AGENT_VERDICT). See $AGENT_REPORT"; return 1 ;;
+    esac
+}
+
+do_ff_merge() { # <branch>
+    step "F3. Fast-forward $MAIN_BRANCH to $1"
+    assert_main_ready
+    if git_ok merge --ff-only "$1"; then ok "$MAIN_BRANCH is now $(git rev-parse --short "$MAIN_BRANCH")."; return 0; fi
+    ko "$MAIN_BRANCH cannot be fast-forwarded to $1: it moved."
+    return 1
+}
+
+do_conform() { # <master-before-the-factory-change>
+    step "F4. Conformity of the software with the new rules"
+    run_implementer "Mode: conform. The factory rules changed in $1..$MAIN_BRANCH. Bring the software in line with them." "conform"
+    case "$AGENT_VERDICT" in
+        COMPLIANT)
+            ok "The software already follows the new rules."
+            do_regression ;;
+        DONE)
+            check_branch "$AGENT_BRANCH" "$CONFORM_BRANCH_PATTERN" conformity || return 1
+            ok "Branch $AGENT_BRANCH proposed."
+            branch_pipeline "$AGENT_BRANCH" ;;
+        *)
+            ko "Conformity not done ($AGENT_VERDICT). See $AGENT_REPORT"; return 1 ;;
+    esac
+}
+
+# ---------------------------------------------------------------- requirement branches
+
 # candidate test -> (fix -> candidate test)* -> fast-forward master -> regression
 branch_pipeline() { # <branch>
     local branch=$1 attempt=1 stale=0 prompt
@@ -375,6 +447,30 @@ case "$COMMAND" in
     test)
         [[ "$TARGET" =~ $BRANCH_PATTERN ]] || die "Usage: factory.sh test <REQ-xxx-kebab-title>"
         branch_pipeline "$TARGET" || status=1
+        ;;
+    factory)
+        [[ -n "$TARGET" && -f "$TARGET" ]] || die "Usage: factory.sh factory <change-file>"
+        assert_main_ready
+        assert_nothing_in_progress
+        base=$(sha_of "$MAIN_BRANCH")
+        if do_factory_change "$TARGET" && do_factory_doc "$FACTORY_BRANCH" && do_ff_merge "$FACTORY_BRANCH"; then
+            do_conform "$base" || status=1
+        else
+            status=1
+        fi
+        ;;
+    doc)
+        assert_main_ready
+        assert_nothing_in_progress
+        doc_branch="factory-docs-$(date +%Y%m%d-%H%M%S)"
+        git branch "$doc_branch" "$MAIN_BRANCH"
+        if ! do_factory_doc "$doc_branch"; then
+            status=1
+        elif [[ "$AGENT_VERDICT" == UNCHANGED ]]; then
+            git_ok branch -D "$doc_branch"
+        else
+            do_ff_merge "$doc_branch" || status=1
+        fi
         ;;
     regress)
         do_regression || status=1

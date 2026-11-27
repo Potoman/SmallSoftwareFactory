@@ -28,6 +28,15 @@ Run the project's tools in containers, as the "Containers" section of `CLAUDE.md
 7. Check that the branch does not modify other requirements, and that the requirement's frontmatter has a `kind`. An update branch (`<ID>-update-…`) changes its own requirement file: that is expected. Then test against the **new** version, and check that what the new version no longer asks for is not still enforced by tests.
 8. Check that the branch follows every constraint requirement present on the candidate commit.
 
+## Conformity branches
+
+A branch named `conform-…` brings the software in line with changed factory rules. It has no requirement of its own. For it, replace steps 1, 5 and 7 with:
+
+- Every requirement present on the candidate passes: run the steps of each "How to test", as for a regression.
+- The branch modifies no requirement file.
+- Every step of every feature requirement's "How to test" is still covered by an automated test. A test the branch removed covered no requirement step.
+- The changes follow the rules of `CLAUDE.md`: that is the purpose of the branch.
+
 ## Answer
 
 A Markdown report: a table with each test step, expected result, actual result and OK/KO/N/A. Then a summary of the test suite output. On failure, add what should be fixed, for the implementer.

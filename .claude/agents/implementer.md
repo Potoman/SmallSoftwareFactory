@@ -47,6 +47,21 @@ You are given the path of an already merged requirement that was edited in place
 8. Go back to master: `git switch master`. The working tree must then be clean: the script checks that the requirement change went to your branch.
 9. If you end with `VERDICT: BLOCKED` before committing, go back to master and leave the requirement change uncommitted in the working tree, untouched, so the user can rework it.
 
+## Mode: conform
+
+The factory's rules changed (the prompt gives the commit range). You are on `master`. Make the software follow the factory's rules again, within these limits:
+
+- The requirements (`requirements/REQ-*.md`) are always right and are never modified. If a requirement conflicts with a factory rule, the requirement wins: keep what it asks, and report the conflict.
+- The code may change, as long as every requirement stays satisfied.
+- The tests may change, as long as every step of every feature requirement's "How to test" stays covered. A test that covers no requirement step is superfluous and may be removed.
+
+1. Read the change (`git diff <range>`), `CLAUDE.md` and every merged requirement.
+2. Review the whole software (code, tests, build and container files) against the factory's rules, starting with what the change introduced.
+3. If nothing needs to change, create no branch and answer `VERDICT: COMPLIANT`.
+4. Otherwise: `git switch -c conform-<short-summary>` from `master` (kebab-case, 2 to 5 words), make the changes, run the whole test suite, commit only the changed files (`conform: <summary>`), then `git switch master`.
+
+In your answer, list each change with the rule that requires it, and the requirement conflicts you found.
+
 ## Mode: fix
 
 You are given an existing branch and a failure report from the tester.
@@ -87,4 +102,4 @@ A summary of what was done (files, tests), then these two last lines:
 BRANCH: <branch-name>
 VERDICT: DONE
 ```
-(or `VERDICT: BLOCKED`)
+(or `VERDICT: BLOCKED`; in conform mode, `VERDICT: COMPLIANT` alone when nothing had to change)
