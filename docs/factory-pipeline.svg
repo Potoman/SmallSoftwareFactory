@@ -1,0 +1,176 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 940" width="780" height="940" role="img" aria-label="SoftwareFactory pipeline: /req-new writes the requirement, the req-checker checks consistency and classifies it as feature or constraint, the implementer creates the branch, the script builds a candidate commit that the branch-tester tests, looping back to the implementer on failure or conflict, then git merge --ff-only moves master to the tested commit and the regression-tester retests all of master.">
+  <style>
+    .bg { fill: #ffffff; }
+    .box { fill: #ffffff; stroke: #c3cbd6; stroke-width: 1.2; }
+    .sub { fill: #edf0f4; stroke: none; }
+    .master { fill: #e1f2ee; stroke: #0b7564; stroke-width: 1.6; }
+    .stop { fill: #fbeceb; stroke: #b3261e; stroke-width: 1.2; }
+    .loop { fill: #fcf2e2; stroke: #9a5900; stroke-width: 1.2; }
+    .alt { fill: #ffffff; stroke: #687485; stroke-width: 1.2; stroke-dasharray: 5 4; }
+    .edge { fill: none; stroke: #687485; stroke-width: 1.4; }
+    .edge-stop { fill: none; stroke: #b3261e; stroke-width: 1.4; }
+    .edge-loop { fill: none; stroke: #9a5900; stroke-width: 1.4; }
+    .edge-alt { fill: none; stroke: #687485; stroke-width: 1.4; stroke-dasharray: 4 3; }
+    .ah { fill: #687485; }
+    .ah-stop { fill: #b3261e; }
+    .ah-loop { fill: #9a5900; }
+    .h1 { fill: #17202b; font-family: "Space Grotesk", "IBM Plex Sans", "DejaVu Sans", "Segoe UI", Arial, sans-serif; font-size: 21px; font-weight: 700; }
+    .h1sub { fill: #586473; font-family: "IBM Plex Mono", "DejaVu Sans Mono", Consolas, monospace; font-size: 12px; }
+    .t { fill: #17202b; font-family: "Space Grotesk", "IBM Plex Sans", "DejaVu Sans", "Segoe UI", Arial, sans-serif; font-size: 13px; font-weight: 700; }
+    .tm { fill: #17202b; font-family: "IBM Plex Mono", "DejaVu Sans Mono", Consolas, monospace; font-size: 12.5px; font-weight: 700; }
+    .t-stop { fill: #b3261e; }
+    .t-master { fill: #0b7564; }
+    .s { fill: #586473; font-family: "IBM Plex Sans", "DejaVu Sans", "Segoe UI", Arial, sans-serif; font-size: 11.5px; }
+    .lbl { fill: #687485; font-family: "IBM Plex Mono", "DejaVu Sans Mono", Consolas, monospace; font-size: 11px; font-weight: 500; }
+    .lbl-stop { fill: #b3261e; }
+    .lbl-loop { fill: #9a5900; }
+    .leg { fill: #586473; font-family: "IBM Plex Sans", "DejaVu Sans", "Segoe UI", Arial, sans-serif; font-size: 12px; }
+  </style>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="ah-stop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-stop" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="ah-loop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-loop" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="780" height="940"/>
+
+  <text class="h1" x="16" y="34">SoftwareFactory pipeline</text>
+  <text class="h1sub" x="16" y="54">scripts/factory.sh run requirements/REQ-xxx-title.md</text>
+
+  <g transform="translate(0,72)">
+    <!-- 0. entry -->
+    <rect class="box" x="250" y="16" width="280" height="60" rx="6"/>
+    <text class="tm" x="390" y="38" text-anchor="middle">/req-new "your need"</text>
+    <text class="s" x="390" y="55" text-anchor="middle">writes requirements/REQ-xxx-title.md</text>
+    <text class="s" x="390" y="69" text-anchor="middle">in English, not committed</text>
+
+    <path class="edge" d="M390,76 V116" marker-end="url(#ah)"/>
+    <text class="lbl" x="398" y="100">factory.sh run</text>
+
+    <!-- 1. req-checker -->
+    <rect class="box" x="250" y="116" width="280" height="60" rx="6"/>
+    <text class="t" x="390" y="138" text-anchor="middle">1 · req-checker</text>
+    <text class="s" x="390" y="155" text-anchor="middle">consistency with existing requirements</text>
+    <text class="s" x="390" y="169" text-anchor="middle">+ classifies: feature or constraint</text>
+
+    <path class="edge-stop" d="M530,146 H596" marker-end="url(#ah-stop)"/>
+    <text class="lbl lbl-stop" x="563" y="140" text-anchor="middle">CONFLICT</text>
+    <rect class="stop" x="596" y="116" width="176" height="60" rx="6"/>
+    <text class="t t-stop" x="684" y="136" text-anchor="middle">Stop</text>
+    <text class="s" x="684" y="152" text-anchor="middle">contradiction, or both</text>
+    <text class="s" x="684" y="166" text-anchor="middle">feature and constraint</text>
+
+    <path class="edge" d="M390,176 V216" marker-end="url(#ah)"/>
+    <text class="lbl" x="398" y="200">OK + KIND</text>
+
+    <!-- 2. implementer -->
+    <rect class="box" x="250" y="216" width="280" height="110" rx="6"/>
+    <text class="t" x="390" y="238" text-anchor="middle">2 · implementer</text>
+    <text class="s" x="390" y="254" text-anchor="middle">branch REQ-xxx-title + kind: field</text>
+    <rect class="sub" x="262" y="264" width="124" height="50" rx="4"/>
+    <text class="t" x="324" y="284" text-anchor="middle">feature</text>
+    <text class="s" x="324" y="301" text-anchor="middle">code + tests</text>
+    <rect class="sub" x="394" y="264" width="124" height="50" rx="4"/>
+    <text class="t" x="456" y="284" text-anchor="middle">constraint</text>
+    <text class="s" x="456" y="301" text-anchor="middle">no feature code</text>
+
+    <path class="edge-stop" d="M530,271 H596" marker-end="url(#ah-stop)"/>
+    <text class="lbl lbl-stop" x="563" y="265" text-anchor="middle">BLOCKED</text>
+    <rect class="stop" x="596" y="241" width="176" height="60" rx="6"/>
+    <text class="t t-stop" x="684" y="261" text-anchor="middle">Stop</text>
+    <text class="s" x="684" y="277" text-anchor="middle">not feasible as written</text>
+    <text class="s" x="684" y="291" text-anchor="middle">or missing toolchain</text>
+
+    <path class="edge" d="M390,326 V380" marker-end="url(#ah)"/>
+    <text class="lbl" x="398" y="357">DONE + branch</text>
+
+    <!-- loop back from the implementer to a new candidate -->
+    <path class="edge-loop" d="M96,390 V356 H320 V380" marker-end="url(#ah-loop)"/>
+    <text class="lbl lbl-loop" x="208" y="350" text-anchor="middle">new candidate</text>
+
+    <!-- 3a. candidate commit -->
+    <rect class="box" x="250" y="380" width="280" height="56" rx="6"/>
+    <text class="t" x="390" y="402" text-anchor="middle">3 · candidate commit</text>
+    <text class="s" x="390" y="420" text-anchor="middle">master + merge --no-ff of the branch</text>
+
+    <!-- alternate entry -->
+    <rect class="alt" x="596" y="370" width="176" height="44" rx="6"/>
+    <text class="tm" x="684" y="388" text-anchor="middle">watch · test</text>
+    <text class="s" x="684" y="404" text-anchor="middle">existing branch</text>
+    <path class="edge-alt" d="M596,392 H530" marker-end="url(#ah)"/>
+
+    <!-- conflict -> implementer -->
+    <path class="edge-loop" d="M250,410 H180" marker-end="url(#ah-loop)"/>
+    <text class="lbl lbl-loop" x="215" y="404" text-anchor="middle">conflict</text>
+
+    <!-- implementer (fix / conflict) -->
+    <rect class="loop" x="12" y="390" width="168" height="80" rx="6"/>
+    <text class="t" x="96" y="410" text-anchor="middle">implementer</text>
+    <text class="s" x="96" y="427" text-anchor="middle">fix: corrects the code</text>
+    <text class="s" x="96" y="442" text-anchor="middle">conflict: merges master</text>
+    <text class="s" x="96" y="457" text-anchor="middle">into its branch</text>
+
+    <path class="edge" d="M390,436 V470" marker-end="url(#ah)"/>
+    <text class="lbl" x="398" y="457">merge OK</text>
+
+    <!-- 3b. branch-tester -->
+    <rect class="box" x="250" y="470" width="280" height="56" rx="6"/>
+    <text class="t" x="390" y="492" text-anchor="middle">branch-tester</text>
+    <text class="s" x="390" y="510" text-anchor="middle">tests THIS commit + whole suite</text>
+
+    <path class="edge-loop" d="M250,498 H96 V472" marker-end="url(#ah-loop)"/>
+    <text class="lbl lbl-loop" x="215" y="492" text-anchor="middle">FAIL</text>
+    <circle class="ah-loop" cx="96" cy="498" r="3"/>
+    <path class="edge-stop" d="M96,498 V540" marker-end="url(#ah-stop)"/>
+    <text class="lbl lbl-stop" x="104" y="524">3rd failure</text>
+    <rect class="stop" x="12" y="540" width="168" height="50" rx="6"/>
+    <text class="t t-stop" x="96" y="560" text-anchor="middle">Stop</text>
+    <text class="s" x="96" y="577" text-anchor="middle">3 attempts used up</text>
+
+    <path class="edge" d="M390,526 V566" marker-end="url(#ah)"/>
+    <text class="lbl" x="398" y="550">PASS</text>
+
+    <!-- 4. fast-forward master -->
+    <rect class="master" x="250" y="566" width="280" height="56" rx="6"/>
+    <text class="tm t-master" x="390" y="588" text-anchor="middle">4 · git merge --ff-only</text>
+    <text class="s" x="390" y="606" text-anchor="middle">master becomes the tested commit</text>
+
+    <path class="edge-loop" d="M530,594 H560 V422 H530" marker-end="url(#ah-loop)"/>
+    <text class="lbl lbl-loop" x="578" y="508" text-anchor="middle" transform="rotate(-90 578 508)">master moved</text>
+
+    <path class="edge" d="M390,622 V662" marker-end="url(#ah)"/>
+    <text class="lbl" x="398" y="646">master updated</text>
+
+    <!-- 5. regression -->
+    <rect class="box" x="250" y="662" width="280" height="56" rx="6"/>
+    <text class="t" x="390" y="684" text-anchor="middle">5 · regression-tester</text>
+    <text class="s" x="390" y="702" text-anchor="middle">retests every requirement on master</text>
+
+    <path class="edge-stop" d="M530,690 H596" marker-end="url(#ah-stop)"/>
+    <text class="lbl lbl-stop" x="563" y="684" text-anchor="middle">FAIL</text>
+    <rect class="stop" x="596" y="662" width="176" height="56" rx="6"/>
+    <text class="t t-stop" x="684" y="684" text-anchor="middle">Regression found</text>
+    <text class="s" x="684" y="701" text-anchor="middle">master stays updated</text>
+
+    <path class="edge" d="M390,718 V758" marker-end="url(#ah)"/>
+    <text class="lbl" x="398" y="742">PASS</text>
+
+    <rect class="master" x="250" y="758" width="280" height="48" rx="6"/>
+    <text class="t t-master" x="390" y="778" text-anchor="middle">Done</text>
+    <text class="s" x="390" y="796" text-anchor="middle">the requirement is on master</text>
+  </g>
+
+  <!-- legend -->
+  <g transform="translate(0,904)">
+    <rect class="box" x="16" y="0" width="22" height="14" rx="3"/>
+    <text class="leg" x="46" y="11">Step or agent</text>
+    <rect class="master" x="160" y="0" width="22" height="14" rx="3"/>
+    <text class="leg" x="190" y="11">master moves here</text>
+    <rect class="loop" x="330" y="0" width="22" height="14" rx="3"/>
+    <text class="leg" x="360" y="11">Fix loop</text>
+    <rect class="stop" x="440" y="0" width="22" height="14" rx="3"/>
+    <text class="leg" x="470" y="11">Pipeline stops</text>
+    <rect class="alt" x="590" y="0" width="22" height="14" rx="3"/>
+    <text class="leg" x="620" y="11">Other entry point</text>
+  </g>
+</svg>
