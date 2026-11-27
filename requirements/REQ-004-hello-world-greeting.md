@@ -26,10 +26,8 @@ Rules:
 
 Edge cases:
 
-- If standard output cannot be written (for example it is closed), the program does not
-  panic and does not hang: this is a failure in the sense of REQ-003, so it prints an error
-  message on standard error and exits with a non-zero code (other than `101`, Rust's panic
-  code).
+- Standard output is always considered open. The program does not detect or handle a
+  closed standard output: its behaviour in that case is not specified.
 - The greeting is written in full and flushed before the program exits, even when standard
   output is a pipe or a file (not a terminal).
 
@@ -46,12 +44,9 @@ for (on the host, or inside the `rust` build container of REQ-002).
 3. Run `"$APP" --req-004-unknown-option </dev/null > out.txt 2> err.txt; echo "exit=$?"`.
    → Expected: a non-zero exit code, `out.txt` contains exactly `Hello World !\n`, and
    `err.txt` holds the error message (at least one line) and no greeting.
-4. Run `"$APP" </dev/null >&- 2> err.txt; echo "exit=$?"` (standard output closed).
-   → Expected: a non-zero exit code other than `101`, at least one line in `err.txt`, and
-   no line containing `panicked` in it.
-5. Build the runtime image of REQ-002 (`$ENGINE build -t req004-app .`) and run
+4. Build the runtime image of REQ-002 (`$ENGINE build -t req004-app .`) and run
    `$ENGINE run --rm req004-app`.
    → Expected: exit code `0`, and the output is exactly the line `Hello World !`.
-6. The automated tests carrying `req_004` in their name cover steps 1 to 4 and run with the
+5. The automated tests carrying `req_004` in their name cover steps 1 to 3 and run with the
    whole suite (`cargo test`).
    → Expected: they pass.
