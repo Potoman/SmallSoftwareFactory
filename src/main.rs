@@ -1,14 +1,20 @@
-//! SoftwareFactory: a program that runs its work to completion, then exits (REQ-003).
+//! SoftwareFactory: a program that greets (REQ-004), runs its work to completion, then
+//! exits (REQ-003).
 //!
 //! Exit codes:
 //! - `0`: the work is done;
+//! - `1`: the greeting cannot be written to standard output, with a message on stderr;
 //! - `2`: invalid command line (unknown option or unexpected argument), with a message on stderr;
 //! - `130` / `143`: interrupted by `SIGINT` / `SIGTERM` before the work was done.
 
 mod cli;
+mod greeting;
 mod signals;
 
 use std::process::ExitCode;
+
+/// Exit code when the greeting cannot be written to standard output.
+const EXIT_OUTPUT: u8 = 1;
 
 /// Exit code for a command line the program does not accept.
 const EXIT_USAGE: u8 = 2;
@@ -17,14 +23,20 @@ fn main() -> ExitCode {
     // Installed first, so that an early SIGINT/SIGTERM stops the program with 130/143.
     signals::install();
 
-    let code = match cli::parse(std::env::args_os().skip(1)) {
-        Ok(()) => {
-            run();
-            ExitCode::SUCCESS
-        }
-        Err(err) => {
-            eprintln!("error: {err}");
-            ExitCode::from(EXIT_USAGE)
+    // The greeting comes first, whatever the command line.
+    let code = if let Err(err) = greeting::print() {
+        eprintln!("error: cannot write the greeting to standard output: {err}");
+        ExitCode::from(EXIT_OUTPUT)
+    } else {
+        match cli::parse(std::env::args_os().skip(1)) {
+            Ok(()) => {
+                run();
+                ExitCode::SUCCESS
+            }
+            Err(err) => {
+                eprintln!("error: {err}");
+                ExitCode::from(EXIT_USAGE)
+            }
         }
     };
 
