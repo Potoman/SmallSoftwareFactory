@@ -6,6 +6,8 @@ argument-hint: <free-form description of the feature>
 
 Need expressed by the user: $ARGUMENTS
 
+If the need is a change to an already merged requirement (modify, relax, extend or fix it), do not write a new requirement: use the `req-update` skill instead.
+
 1. **Find the next free ID.** Take the highest `REQ-NNN` number used among:
    - the files on master: `git ls-tree --name-only master requirements/`;
    - the files in the `requirements/` folder;

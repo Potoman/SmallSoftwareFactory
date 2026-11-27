@@ -18,6 +18,8 @@ Usage: scripts/factory.sh <command> [target] [options]
 Commands:
   check   <requirements/REQ-xxx-....md>   consistency check and classification only
   run     <requirements/REQ-xxx-....md>   check -> implement -> test -> merge -> regression
+  update  <requirements/REQ-xxx-....md>   same chain for a merged requirement edited in place
+                                          (its uncommitted change is the new version)
   test    <REQ-xxx-kebab-title>           test -> merge -> regression for an existing branch
   regress                                 retest every merged requirement on master
   watch                                   poll for new/updated REQ-* branches and test them
@@ -66,12 +68,14 @@ die()  { printf '%sERROR: %s%s\n' "$C_RED" "$1" "$C_RESET" >&2; exit 2; }
 git_ok() { git "$@" >/dev/null 2>&1; }
 sha_of() { git rev-parse --verify --quiet "$1^{commit}"; }
 
+# [allowed-file]: a requirement edited in place for an update, the only change tolerated.
 assert_main_ready() {
+    local allowed=${1:-} dirty
     if [[ "$(git rev-parse --abbrev-ref HEAD)" != "$MAIN_BRANCH" ]]; then
         git switch -q "$MAIN_BRANCH" || die "Cannot switch the main checkout to $MAIN_BRANCH."
     fi
-    local dirty
     dirty=$(git status --porcelain --untracked-files=no)
+    [[ -n "$allowed" ]] && dirty=$(grep -vxF -- " M $allowed" <<<"$dirty")
     [[ -z "$dirty" ]] || die "Tracked files are modified in the main checkout. Commit or stash them first:
 $dirty"
 }
@@ -123,12 +127,13 @@ run_agent() { # <agent> <prompt> <workdir> <report-name>
 }
 
 # Runs the implementer in the main checkout and makes sure it did not touch master.
-run_implementer() { # <prompt> <report-name>
+# [allowed-file]: in update mode, the edited requirement the implementer takes to its branch.
+run_implementer() { # <prompt> <report-name> [allowed-file]
     local before after
-    assert_main_ready
+    assert_main_ready "${3:-}"
     before=$(sha_of "$MAIN_BRANCH")
     run_agent implementer "$1" "$ROOT" "$2"
-    assert_main_ready
+    assert_main_ready "${3:-}"
     after=$(sha_of "$MAIN_BRANCH")
     [[ "$before" == "$after" ]] ||
         die "The implementer moved $MAIN_BRANCH ($before -> $after). Only this script may update $MAIN_BRANCH. Inspect it before going on."
@@ -138,11 +143,17 @@ run_implementer() { # <prompt> <report-name>
 
 # The checker also decides the kind of the requirement (the author never does).
 # Sets REQ_KIND (feature | constraint) on success.
-do_check() { # <requirement-file>
-    local id
+do_check() { # <requirement-file> [update]
+    local id prompt
     id=$(req_id "$1") || exit 2
-    step "1. Consistency check and classification: $1"
-    run_agent req-checker "New requirement to check: $1" "$ROOT" "check-$id"
+    if [[ "${2:-}" == update ]]; then
+        step "1. Consistency check and classification of the update: $1"
+        prompt="Mode: update. New version to check: $1 (uncommitted change in the main checkout). Current version: $1 on $MAIN_BRANCH."
+    else
+        step "1. Consistency check and classification: $1"
+        prompt="New requirement to check: $1"
+    fi
+    run_agent req-checker "$prompt" "$ROOT" "check-$id"
     if [[ "$AGENT_VERDICT" != OK ]]; then ko "Requirement rejected. See $AGENT_REPORT"; return 1; fi
     if [[ "$AGENT_KIND" != feature && "$AGENT_KIND" != constraint ]]; then
         ko "The checker did not classify the requirement (KIND: '${AGENT_KIND}'). See $AGENT_REPORT"; return 1
@@ -152,13 +163,23 @@ do_check() { # <requirement-file>
 }
 
 # Sets IMPLEMENTED_BRANCH on success.
-do_implement() { # <requirement-file> <kind>
-    local file=$1 kind=$2 id branch
+do_implement() { # <requirement-file> <kind> [update]
+    local file=$1 kind=$2 id branch prompt allowed=""
     id=$(req_id "$file") || exit 2
-    step "2. Implementation ($kind): $id"
-    run_implementer "Mode: new requirement. Requirement to implement: $file. Kind: $kind." "implement-$id"
+    if [[ "${3:-}" == update ]]; then
+        step "2. Implementation of the update ($kind): $id"
+        prompt="Mode: update. Requirement updated in place: $file (its uncommitted change is the new version; $MAIN_BRANCH has the current one). Kind: $kind."
+        allowed=$file
+    else
+        step "2. Implementation ($kind): $id"
+        prompt="Mode: new requirement. Requirement to implement: $file. Kind: $kind."
+    fi
+    run_implementer "$prompt" "implement-$id" "$allowed"
     if [[ "$AGENT_VERDICT" != DONE ]]; then
         ko "Implementer did not finish ($AGENT_VERDICT). See $AGENT_REPORT"; return 1
+    fi
+    if [[ -n "$allowed" ]] && ! git diff --quiet -- "$allowed"; then
+        ko "The edited $allowed is still uncommitted on $MAIN_BRANCH: the implementer did not take it to its branch."; return 1
     fi
     branch=$AGENT_BRANCH
     if [[ -z "$branch" || ! "$branch" =~ $BRANCH_PATTERN || "$branch" != "$id-"* ]]; then
@@ -312,6 +333,20 @@ case "$COMMAND" in
         [[ -n "$TARGET" ]] || { usage >&2; exit 2; }
         [[ -f "$TARGET" ]] || die "File not found: $TARGET"
         if do_check "$TARGET" && do_implement "$TARGET" "$REQ_KIND"; then
+            branch_pipeline "$IMPLEMENTED_BRANCH" || status=1
+        else
+            status=1
+        fi
+        ;;
+    update)
+        [[ -n "$TARGET" ]] || { usage >&2; exit 2; }
+        TARGET=${TARGET#./}
+        [[ "$TARGET" == requirements/REQ-*.md && -f "$TARGET" ]] || die "Usage: factory.sh update <requirements/REQ-xxx-....md>"
+        git cat-file -e "$MAIN_BRANCH:$TARGET" 2>/dev/null ||
+            die "$TARGET is not on $MAIN_BRANCH: only a merged requirement can be updated."
+        ! git diff --quiet "$MAIN_BRANCH" -- "$TARGET" || die "$TARGET has no change compared with $MAIN_BRANCH: edit it first."
+        assert_main_ready "$TARGET"
+        if do_check "$TARGET" update && do_implement "$TARGET" "$REQ_KIND" update; then
             branch_pipeline "$IMPLEMENTED_BRANCH" || status=1
         else
             status=1

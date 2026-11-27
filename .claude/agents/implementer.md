@@ -30,6 +30,23 @@ Write the kind in the requirement's frontmatter, after `title`: `kind: feature` 
 6. Commit **only** your files and the requirement file, with `git add <files>` and never `git add -A`. Message: `<ID>: <title>`.
 7. Go back to master: `git switch master`.
 
+## Mode: update
+
+You are given the path of an already merged requirement that was edited in place, and its kind. You are on `master`: the file in the working tree is the new version (an uncommitted change), and master has the current one.
+
+1. Read the new version, the change (`git diff master -- <path>`) and the other merged requirements. Identify exactly what changes.
+2. Choose the branch name `<ID>-update-<short-summary>`: the summary in kebab-case, 2 to 5 words, only `[a-z0-9-]`. Example: `REQ-001-update-config-files`. If that branch already exists, add a number (`-2`).
+3. `git switch -c <branch>` from `master`. The uncommitted change of the requirement comes with you to the branch.
+4. Write the given `kind` in the requirement's frontmatter. Do not change anything else in it. This is the only requirement you change.
+5. Bring the repository in line with the new version:
+   - **feature**: change the code and the tests so that they cover every step of the new "How to test", and remove what the new version no longer asks for;
+   - **constraint**: bring the existing code and configuration into compliance with the new rules. Do not write feature code.
+   - Update the "Tech stack" section of `CLAUDE.md` if it quotes the changed rules.
+6. Run the whole test suite, if one exists. It must pass.
+7. Commit **only** the changed files, including the requirement, with `git add <files>`. Message: `<ID>: update - <short summary>`.
+8. Go back to master: `git switch master`. The working tree must then be clean: the script checks that the requirement change went to your branch.
+9. If you end with `VERDICT: BLOCKED` before committing, go back to master and leave the requirement change uncommitted in the working tree, untouched, so the user can rework it.
+
 ## Mode: fix
 
 You are given an existing branch and a failure report from the tester.

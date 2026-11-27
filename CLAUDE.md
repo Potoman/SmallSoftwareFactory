@@ -27,6 +27,8 @@ requirements/REQ-xxx-*.md (new, not committed)
  5. regression-tester  → retests ALL requirements present on master
 ```
 
+A merged requirement is changed through the same chain: `/req-update` edits `requirements/<ID>-*.md` in place (uncommitted), then `factory.sh update <file>` checks the new version against the other requirements, has the implementer take it to a branch `<ID>-update-<summary>` and adapt the code, tests, merges and runs the regression.
+
 Orchestration is done by `scripts/factory.sh` (run `./scripts/factory.sh --help`). The agents live in `.claude/agents/`.
 
 ## Environment
@@ -49,6 +51,7 @@ A requirement that mixes both is rejected and must be split.
 - **Requirement**: `requirements/<ID>-<short-title>.md`, following `requirements/_TEMPLATE.md`.
   - ID: `REQ-` followed by 3 digits (`REQ-001`). Unique, never reused.
   - A requirement is "merged" when its file is present on `master`. Until then it lives in its branch.
+  - A merged requirement is changed with `/req-update <ID> <change>` (or edited by hand, then `factory.sh update <file>`). It keeps its ID and file name. It is never committed to `master` directly.
 - **Branch**: `<ID>-<short-title-in-kebab-case>`, e.g. `REQ-001-email-login`. Only `[a-z0-9-]` after the ID.
 - **Tests**: every requirement is covered by automated tests whenever possible. Their name contains the lowercase ID (e.g. `tests/req_001_*.py`, `req-001.test.ts`).
 - **Main branch**: `master`.
@@ -66,6 +69,6 @@ A requirement that mixes both is rejected and must be split.
 
 ## Rules for all agents
 
-- Never modify an existing requirement, except the one being implemented.
+- Never modify an existing requirement, except the one being implemented or updated.
 - Never modify `master`: only the script moves it. No push, no rebase, no `reset --hard`. Single exception: the implementer, in conflict mode, may run `git merge master` **inside its own branch**.
 - End the final answer with a `VERDICT: <VALUE>` line (values defined by each agent). The script reads this line.

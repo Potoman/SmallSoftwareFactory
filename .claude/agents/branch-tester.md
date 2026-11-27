@@ -23,7 +23,7 @@ For a **constraint**, a "How to test" step that can only run once application co
 4. Run the **whole** automated test suite, if one exists. Any failure → FAIL, which also protects the already merged requirements.
 5. For a feature, check that this requirement's tests cover **every step** of "How to test". A test that verifies nothing, or an uncovered step, counts as a failure.
 6. Run each step of "How to test" yourself whenever feasible (run the command, the call…) and compare with the expected result.
-7. Check that the branch does not modify other requirements, and that the requirement's frontmatter has a `kind`.
+7. Check that the branch does not modify other requirements, and that the requirement's frontmatter has a `kind`. An update branch (`<ID>-update-…`) changes its own requirement file: that is expected. Then test against the **new** version, and check that what the new version no longer asks for is not still enforced by tests.
 8. Check that the branch follows every constraint requirement present on the candidate commit.
 
 ## Answer
