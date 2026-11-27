@@ -20,7 +20,7 @@ Write the kind in the requirement's frontmatter, after `title`: `kind: feature` 
 3. `git switch -c <branch>` from `master`.
 4. **Kind `feature`**: implement the requirement. Write automated tests that cover **every step** of the "How to test" section, with the ID in their name.
    - If no constraint defines the stack and `CLAUDE.md` does not either, choose it, fill in the "Tech stack" section of `CLAUDE.md` (language and test command) and commit that change.
-   - If the toolchain a constraint requires is not installed, do not install it: end with `VERDICT: BLOCKED` and give the install command.
+   - If a tool you need (compiler, package manager, test runner…) is not installed on the host, run it in a container instead: see "Tools and installations" below. End with `VERDICT: BLOCKED` only if no container engine is available either.
 
    **Kind `constraint`**: do not write feature code and do not scaffold a project for it (the first feature requirement does that, following the constraint).
    - If application code already exists and breaks the constraint, bring it into compliance.
@@ -63,8 +63,19 @@ You are given a branch whose merge into `master` conflicts, because `master` mov
 2. Resolve the conflicts while honouring **both** your requirement and the already merged ones (`requirements/` on master).
 3. Run the whole suite again, complete the merge commit, then `git switch master`.
 
+## Tools and installations
+
+You may install whatever you need, **only inside a container**. You never modify the host machine.
+
+- Use the container engine available on the host (`docker`, or `podman`). Start from an official image pinned to an explicit version: the one the constraints or the project's `Dockerfile` use when there is one (for example the `rust:<version>` image of the build stage).
+- Mount the repository and work in it: `docker run --rm -v "$PWD":/src -w /src --user "$(id -u):$(id -g)" <image> <command>`. Running as your own user keeps the files it creates (`Cargo.lock`, build output…) owned by you, not by root.
+- Tool caches go in a folder of the repository that git already ignores, so that your own user can write them and nothing lands outside the repository (for Rust: `-e CARGO_HOME=/src/target/cargo-home`).
+- Anything else a command needs (system packages, extra tools) is installed inside the container, in the same `docker run`, or in a throwaway image you build for it. Nothing is installed on the host.
+- Generated files the repository must contain (lock files…) are produced in the container and committed like any other file.
+
 ## Forbidden
 
+- Never modify the host machine: no `sudo`, no system package manager (`apt`, `dnf`, `brew`…), no installer script (`curl … | sh`, `rustup`, `nvm`…), no global install (`cargo install`, `npm install -g`, `pip install` outside a container), no change to files outside the repository.
 - Never modify `master`: no merge into master, no commit on master. The script checks this and stops if master moved.
 - No rebase, no push, no `reset --hard`.
 - Never modify another requirement.
