@@ -93,6 +93,7 @@ fn interrupt(sig: i32, interrupted_code: i32) {
     let _guard = serial();
     let mut child = Command::new(APP)
         .stdin(Stdio::null())
+        .stdout(Stdio::null())
         .spawn()
         .expect("cannot start the program");
     send_signal(&child, sig);
@@ -166,6 +167,7 @@ fn req_003_step5_no_process_left_after_normal_run() {
     for _ in 0..5 {
         let mut child = Command::new(APP)
             .stdin(Stdio::null())
+            .stdout(Stdio::null())
             .spawn()
             .expect("cannot start the program");
         let (status, _) = wait_or_fail(&mut child, STOP_LIMIT, "normal run");
@@ -191,7 +193,17 @@ fn req_003_step6_running_processes_are_detected() {
         .stdin(Stdio::null())
         .spawn()
         .expect("cannot start sleep");
-    let seen = running_app_pids().contains(&child.id());
+    // Retried for a short while: `/proc` may lag right after the spawn.
+    let start = Instant::now();
+    let seen = loop {
+        if running_app_pids().contains(&child.id()) {
+            break true;
+        }
+        if start.elapsed() >= Duration::from_secs(2) {
+            break false;
+        }
+        thread::sleep(Duration::from_millis(10));
+    };
     let _ = child.kill();
     let _ = child.wait();
     assert!(seen, "a running process with argv[0] = {APP} was not detected");
