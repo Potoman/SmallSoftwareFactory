@@ -67,10 +67,9 @@ You are given a branch whose merge into `master` conflicts, because `master` mov
 
 You may install whatever you need, **only inside a container**. You never modify the host machine.
 
-- Use the container engine available on the host (`docker`, or `podman`). Start from an official image pinned to an explicit version: the one the constraints or the project's `Dockerfile` use when there is one (for example the `rust:<version>` image of the build stage).
-- Mount the repository and work in it: `docker run --rm -v "$PWD":/src -w /src --user "$(id -u):$(id -g)" <image> <command>`. Running as your own user keeps the files it creates (`Cargo.lock`, build output…) owned by you, not by root.
-- Tool caches go in a folder of the repository that git already ignores, so that your own user can write them and nothing lands outside the repository (for Rust: `-e CARGO_HOME=/src/target/cargo-home`).
-- Anything else a command needs (system packages, extra tools) is installed inside the container, in the same `docker run`, or in a throwaway image you build for it. Nothing is installed on the host.
+- Follow the "Containers" section of `CLAUDE.md`: one-shot `docker run --rm` containers, the code mounted as a volume, the toolchain image reused, product images removed right after use.
+- If no constraint or `Dockerfile` names an image yet, start from an official image pinned to an explicit version.
+- If you change the `Dockerfile`, check that the images it defines still build (as product images, removed right after), and use the toolchain image of the new `Dockerfile`.
 - Generated files the repository must contain (lock files…) are produced in the container and committed like any other file.
 
 ## Forbidden

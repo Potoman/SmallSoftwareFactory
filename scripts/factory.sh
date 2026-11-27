@@ -103,6 +103,26 @@ cleanup() { [[ -n "$CURRENT_WT" ]] && remove_worktree "$CURRENT_WT"; }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
+# ---------------------------------------------------------------- container images
+
+# Removes every image the agents built (label sf.factory=1), except the toolchain image of the
+# Dockerfile on master (sf-toolchain:<hash>), then the dangling ones. See "Containers" in
+# CLAUDE.md. Does nothing when no container engine is usable; never fails the pipeline.
+cleanup_images() {
+    local engine keep="" ref
+    engine=$(command -v docker || command -v podman) || return 0
+    "$engine" info >/dev/null 2>&1 || { info "No usable container engine: image cleanup skipped."; return 0; }
+    if git cat-file -e "$MAIN_BRANCH:Dockerfile" 2>/dev/null; then
+        keep="sf-toolchain:$(git show "$MAIN_BRANCH:Dockerfile" | sha256sum | cut -c1-12)"
+    fi
+    while read -r ref; do
+        [[ -z "$ref" || "$ref" == "$keep" ]] && continue
+        "$engine" rmi -f "$ref" >/dev/null 2>&1 && info "   removed image $ref"
+    done < <("$engine" images --filter label=sf.factory=1 --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>')
+    "$engine" image prune -f --filter label=sf.factory=1 >/dev/null 2>&1
+    return 0
+}
+
 # ---------------------------------------------------------------- agents
 
 save_report() { # <name> <text> -> prints the report path
@@ -363,7 +383,7 @@ case "$COMMAND" in
         echo "Watching REQ-* branches every ${INTERVAL}s (Ctrl+C to stop)..."
         while true; do
             mapfile -t pending < <(pending_branches)
-            for b in "${pending[@]}"; do branch_pipeline "$b" || true; done
+            for b in "${pending[@]}"; do branch_pipeline "$b" || true; cleanup_images; done
             sleep "$INTERVAL"
         done
         ;;
@@ -373,5 +393,7 @@ case "$COMMAND" in
         ;;
 esac
 
+step "Cleanup of the factory's container images"
+cleanup_images
 if ((status == 0)); then ok "Done."; else ko "Pipeline stopped."; fi
 exit "$status"

@@ -17,6 +17,8 @@ For a **constraint**, a "How to test" step that can only run once application co
 
 ## Steps
 
+Run the project's tools in containers, as the "Containers" section of `CLAUDE.md` says: one-shot `docker run --rm` containers with the code of your worktree mounted, the toolchain image reused, product images built from your worktree and removed right after the check. Never install anything on the host. Leave no container and no product image behind.
+
 1. List the merged requirements: every `requirements/REQ-*.md`, excluding `_TEMPLATE.md`.
 2. Read `CLAUDE.md` and the constraint requirements to find the test command, then run the whole automated test suite, if one exists.
 3. For each requirement, run the "How to test" steps that are fast and side-effect free. For the others, rely on the automated tests carrying its ID.

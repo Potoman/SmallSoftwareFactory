@@ -17,6 +17,8 @@ For a **constraint**, a "How to test" step that can only run once application co
 
 ## Steps
 
+Run the project's tools in containers, as the "Containers" section of `CLAUDE.md` says: one-shot `docker run --rm` containers with the code of your worktree mounted, the toolchain image reused, product images built from your worktree and removed right after the check. Never install anything on the host. Leave no container and no product image behind.
+
 1. The branch name starts with the ID (`REQ-007-csv-export` → `REQ-007`). Find the matching requirement in `requirements/` and read it. If it does not exist → FAIL.
 2. Read `CLAUDE.md` and the constraint requirements to find the test command.
 3. Look at what the branch brings to master: `git diff HEAD^1 HEAD --stat`, then the diff. `HEAD^1` is master before the merge.

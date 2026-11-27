@@ -37,6 +37,22 @@ Orchestration is done by `scripts/factory.sh` (run `./scripts/factory.sh --help`
 - No Windows-specific tooling: no PowerShell, `.bat`/`.cmd` files or Windows paths. Scripts are bash, with a `#!/usr/bin/env bash` shebang.
 - Text files use LF line endings (enforced by `.gitattributes`).
 
+## Containers
+
+Agents never install anything on the host: every tool the project needs (compiler, test runner…) runs in a container. Containers are **one-shot**, and images have a known lifecycle. This applies to `docker` and `podman` alike.
+
+- **One-shot containers.** Always `docker run --rm`, in the foreground: the container is removed as soon as its command ends. Never keep one alive or reuse it: no `-d`, no `docker start`, `docker exec`, `docker attach` or `docker commit`. To run several commands, chain them in one `docker run … sh -c '…'`.
+- **The code is mounted, never copied into an image**, for all the agents' work (build, tests, lock files):
+  `docker run --rm -v "$PWD":/src -w /src --user "$(id -u):$(id -g)" -e CARGO_HOME=/src/target/cargo-home <toolchain-image> sh -c '…'`.
+  Running as your own user keeps the generated files owned by you. Tool caches stay in a folder of the repository that git ignores.
+- **Toolchain image** (the tools only, no code):
+  - If the `Dockerfile` has a stage named `toolchain`, the image is that stage, tagged `sf-toolchain:<hash>` where `<hash>` is `sha256sum Dockerfile | cut -c1-12`. Build it only if it does not exist yet (`docker image inspect` fails): `docker build --target toolchain --label sf.factory=1 -t sf-toolchain:<hash> .`. Every agent and branch with the same `Dockerfile` reuses it.
+  - Otherwise, it is the official image the build stage starts from (today the `FROM … AS build` image): nothing to build.
+  - Extra tools a single command needs are installed inside its one-shot container, in the same `docker run`.
+- **Product images** (`docker build --target test`, the runtime image): only to check what the requirements say about them. Tag them `sf-product-<branch>-$RANDOM` with `--label sf.factory=1`, and remove them with `docker rmi -f` as soon as the check is done, also when it fails.
+- **Official base images** pulled from a registry are a download cache: keep them.
+- **Cleanup.** An agent never removes a toolchain image. Before its final answer, it checks that it leaves no container (`docker ps -a`) and no product image (`docker images --filter label=sf.factory=1`), and says so in its report. After each pipeline, `factory.sh` removes every `sf.factory=1` image except the toolchain image of the `Dockerfile` on `master`.
+
 ## Requirement kinds
 
 The factory, not the author, decides the kind of each requirement (the `req-checker` classifies it, the implementer writes `kind:` in its frontmatter):
