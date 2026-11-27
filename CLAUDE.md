@@ -92,3 +92,6 @@ A requirement that mixes both is rejected and must be split.
 - Never modify an existing requirement, except the one being implemented or updated.
 - Never modify `master`: only the script moves it. No push, no rebase, no `reset --hard`. Single exception: the implementer, in conflict mode, may run `git merge master` **inside its own branch**.
 - End the final answer with a `VERDICT: <VALUE>` line (values defined by each agent). The script reads this line.
+- Keep it simple. Do exactly what the requirement asks, in the simplest way that works. Do not add behaviour, edge cases, options or abstractions it does not ask for.
+- Do not over-interpret. When a requirement is silent on a point, leave it unspecified rather than inventing a rule. If a point is truly ambiguous and blocks the work, ask (or report it) instead of guessing.
+- Comment as little as possible. Write code that explains itself through its names and structure. Add a comment only when the code cannot make something clear on its own, typically a reason that comes from outside the code (an external constraint, a tool or platform quirk, a requirement that looks surprising).
