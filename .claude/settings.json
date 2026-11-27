@@ -13,7 +13,6 @@
       "Bash(git rev-parse:*)"
     ],
     "deny": [
-      "Bash(git push:*)",
       "Bash(git merge:*)",
       "Bash(git reset --hard:*)",
       "Read(./.env)",

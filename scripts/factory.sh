@@ -138,11 +138,13 @@ save_report() { # <name> <text> -> prints the report path
 }
 
 # Runs one agent headless. Sets AGENT_VERDICT, AGENT_BRANCH, AGENT_KIND and AGENT_REPORT.
+# git push is denied here, not in .claude/settings.json, so that the user's own sessions may push.
 run_agent() { # <agent> <prompt> <workdir> <report-name>
     local agent=$1 prompt=$2 workdir=$3 name=$4 out
     info "-> agent '$agent' in $workdir"
     out=$(cd "$workdir" && printf '%s' "$prompt" |
-        claude -p --agent "$agent" --permission-mode "$PERMISSION_MODE" --output-format text 2>&1)
+        claude -p --agent "$agent" --permission-mode "$PERMISSION_MODE" \
+            --disallowedTools "Bash(git push:*)" --output-format text 2>&1)
     AGENT_REPORT=$(save_report "$name" "$out")
     AGENT_VERDICT=$(grep -oE 'VERDICT:[[:space:]]*[A-Z]+' <<<"$out" | tail -n 1 | sed -E 's/^VERDICT:[[:space:]]*//')
     AGENT_VERDICT=${AGENT_VERDICT:-NONE}
