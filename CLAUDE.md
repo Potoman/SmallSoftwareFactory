@@ -59,8 +59,10 @@ A requirement that mixes both is rejected and must be split.
 
 > Defined by the `kind: constraint` requirements merged on `master`: read them first. If none defines the stack, the first implemented feature picks it and describes it here, together with the command that runs the whole test suite.
 
-- Language: _to be defined_
-- Test command (whole suite): _to be defined_
+- Language: Rust (stable toolchain, edition 2021 or newer), Cargo project at the repository root (REQ-001). Application code lives in `src/`, integration tests in `tests/`.
+- Toolchain install: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y`
+- Test command (whole suite): `cargo test`
+- The build must produce no compiler warnings; `target/` is ignored by git.
 
 ## Rules for all agents
 

@@ -4,3 +4,6 @@
 # Personal Claude Code settings
 .claude/settings.local.json
 CLAUDE.local.md
+
+# Rust build output (REQ-001)
+/target/
