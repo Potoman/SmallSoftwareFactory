@@ -66,6 +66,10 @@ A requirement that mixes both is rejected and must be split.
 - Toolchain install: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y`
 - Test command (whole suite): `cargo test`
 - The build must produce no compiler warnings; `target/` is ignored by git.
+- Containerized build (REQ-002): multi-stage `Dockerfile` + `.dockerignore` at the root (context = root); the host only needs Docker or Podman.
+  - Tests in a container: `docker build --target test .` (runs `cargo test --locked`, fails on a failing test or a warning).
+  - Runtime image: `docker build -t <name> .` (pinned minimal base, non-root user, binary copied to `/usr/local/bin/app` = `ENTRYPOINT`; the package must produce exactly one binary).
+  - Base images are pinned to explicit tags (never `latest`); `Cargo.lock` is committed.
 
 ## Rules for all agents
 

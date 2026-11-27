@@ -1,0 +1,15 @@
+# Keep the build context small and free of host state (REQ-002).
+
+# Build output
+target/
+
+# Git metadata
+.git/
+
+# Factory runtime (agent reports)
+.factory/
+
+# Local, per-user settings
+.claude/settings.local.json
+CLAUDE.local.md
+.env
